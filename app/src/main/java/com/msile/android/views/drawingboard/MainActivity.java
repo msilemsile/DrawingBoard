@@ -25,5 +25,11 @@ public class MainActivity extends AppCompatActivity {
                 drawingBoard.reset();
             }
         });
+        findViewById(R.id.clear_screen).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                drawingBoard.clearScreen();
+            }
+        });
     }
 }

@@ -67,6 +67,11 @@ public class DrawingBoard extends View {
         mode = MODE_DRAW;
     }
 
+    public void clearScreen() {
+        mTempCanvas.drawColor(Color.WHITE);
+        invalidate();
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
