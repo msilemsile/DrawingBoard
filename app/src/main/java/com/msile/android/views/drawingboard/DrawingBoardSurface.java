@@ -28,15 +28,20 @@ public class DrawingBoardSurface extends SurfaceView implements SurfaceHolder.Ca
     private int mClearRadius = 88;                  //橡皮半径
     private int mDrawColor = Color.RED;             //画笔颜色
     private int mBoardColor = Color.WHITE;          //画板颜色
+    private int mMoveDrawOffset = 44;
 
     private int mDownX, mDownY;
     private int mMoveX, mMoveY;
+    private int mMoveTempOffset;
     private int mLastDistance;
 
     private int mDrawOperate;                       //当前绘制操作
     public static final int OPERATE_DRAW = 0;       //画笔操作
     public static final int OPERATE_CLEAR = -1;     //橡皮操作
 
+    private Bitmap mShapePic;
+    private int mShapePicWidth;
+    private int mShapePicHeight;
     private Bitmap mTempBitmap;
     private Canvas mTempCanvas;
     private Canvas mSurfaceCanvas;                  //画布
@@ -46,6 +51,7 @@ public class DrawingBoardSurface extends SurfaceView implements SurfaceHolder.Ca
     public static final int SHAPE_CIRCLE = 1;       //圆环
     public static final int SHAPE_RECTANGLE = 2;    //矩形
     public static final int SHAPE_CIRCLE_POINT = 4; //圆点
+    public static final int SHAPE_PIC = 5;          //图片
 
     private SurfaceHolder holder;
     private boolean hasReady;
@@ -82,6 +88,20 @@ public class DrawingBoardSurface extends SurfaceView implements SurfaceHolder.Ca
     public void setDrawShape(int mDrawShape) {
         setPaintMode();
         this.mDrawShape = mDrawShape;
+    }
+
+    public void setShapePic(Bitmap bitmap) {
+        if (bitmap == null) {
+            return;
+        }
+        if (mShapePic != null) {
+            mShapePic.recycle();
+        }
+        this.mShapePic = bitmap;
+        mShapePicWidth = mShapePic.getWidth();
+        mShapePicHeight = mShapePic.getHeight();
+        mDrawShape = SHAPE_PIC;
+        mDrawOperate = OPERATE_DRAW;
     }
 
     public void setDrawColor(int mDrawColor) {
@@ -139,6 +159,11 @@ public class DrawingBoardSurface extends SurfaceView implements SurfaceHolder.Ca
                             mTempCanvas.drawCircle(mDownX, mDownY, mDrawRadius / 2, mDrawPaint);
                             mDrawPaint.setStyle(Paint.Style.STROKE);
                             break;
+                        case SHAPE_PIC:
+                            if (mShapePic != null) {
+                                mTempCanvas.drawBitmap(mShapePic, mDownX - mShapePicWidth / 2, mDownY - mShapePicHeight / 2, null);
+                            }
+                            break;
                     }
                 } else if (mDrawOperate == OPERATE_CLEAR) {
                     mClearPath.reset();
@@ -151,6 +176,9 @@ public class DrawingBoardSurface extends SurfaceView implements SurfaceHolder.Ca
                 int dx = Math.abs(moveX - mDownX);
                 int dy = Math.abs(moveY - mDownY);
                 int distance = (int) Math.sqrt(dx * dx + dy * dy);
+                int mx = Math.abs(moveX - mMoveX);
+                int my = Math.abs(moveY - mMoveY);
+                int tempDistance = (int) Math.sqrt(mx * mx + my * my);
                 if (mDrawOperate == OPERATE_DRAW) {
                     switch (mDrawShape) {
                         case SHAPE_PATH:
@@ -177,6 +205,24 @@ public class DrawingBoardSurface extends SurfaceView implements SurfaceHolder.Ca
                             }
                             mTempCanvas.drawRect(mDownX, mDownY, moveX, moveY, mDrawPaint);
                             break;
+                        case SHAPE_CIRCLE_POINT:
+                            mMoveTempOffset += tempDistance;
+                            if (mMoveTempOffset >= mMoveDrawOffset) {
+                                mMoveTempOffset = 0;
+                                mDrawPaint.setStyle(Paint.Style.FILL);
+                                mTempCanvas.drawCircle(moveX, moveY, mDrawRadius / 2, mDrawPaint);
+                                mDrawPaint.setStyle(Paint.Style.STROKE);
+                            }
+                            break;
+                        case SHAPE_PIC:
+                            if (mMoveTempOffset >= mMoveDrawOffset) {
+                                mMoveTempOffset = 0;
+                                if (mShapePic != null) {
+                                    mTempCanvas.drawBitmap(mShapePic, moveX - mShapePicWidth / 2, moveY - mShapePicHeight / 2, null);
+                                }
+                            }
+                            mMoveTempOffset += tempDistance;
+                            break;
                     }
                 } else if (mDrawOperate == OPERATE_CLEAR) {
                     mClearPath.lineTo(moveX, moveY);
@@ -190,6 +236,7 @@ public class DrawingBoardSurface extends SurfaceView implements SurfaceHolder.Ca
                 mLastDistance = 0;
                 mMoveX = 0;
                 mMoveY = 0;
+                mMoveTempOffset = 0;
                 break;
         }
         refreshDraw();
